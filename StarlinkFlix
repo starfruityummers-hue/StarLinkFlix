@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StarLinkFlix</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: url('https://img.freepik.com/premium-vector/realistic-galaxy-background_52683-12122.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            box-shadow: 0 0 20px #ffff00;
+        }
+        .header h1 {
+            margin: 0;
+            color: #ffff00;
+            text-shadow: 0 0 10px #ffff00;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .show-section {
+            margin-bottom: 40px;
+        }
+        .show-section h2 {
+            text-align: left;
+            padding: 10px;
+            margin: 0 0 10px;
+            color: #ffff00;
+            text-shadow: 0 0 5px #ffff00;
+        }
+        .seasons-grid {
+            display: flex;
+            overflow-x: auto;
+            gap: 20px;
+            padding-bottom: 20px;
+            scrollbar-width: thin;
+            scrollbar-color: #ffff00 #333;
+        }
+        .season-card {
+            min-width: 200px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s;
+            box-shadow: 0 0 10px #ffff00;
+        }
+        .season-card:hover {
+            transform: scale(1.05);
+        }
+        .season-card img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+        }
+        .season-card h3 {
+            text-align: center;
+            padding: 10px;
+            margin: 0;
+            color: #ffff00;
+            text-shadow: 0 0 5px #ffff00;
+        }
+        .episodes-section {
+            display: none;
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px #ffff00;
+        }
+        .folder-iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            border-radius: 10px;
+        }
+        .error-message {
+            display: none;
+            text-align: center;
+            color: #ff5555;
+            font-size: 18px;
+            padding: 20px;
+        }
+        .loading-message {
+            display: none;
+            text-align: center;
+            color: #ffff00;
+            font-size: 18px;
+            padding: 20px;
+        }
+        @keyframes twinkle {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="10" cy="10" r="1" fill="white" opacity="0.8"/><circle cx="30" cy="50" r="1" fill="white" opacity="0.6"/><circle cx="70" cy="20" r="1" fill="white" opacity="0.7"/><circle cx="90" cy="80" r="1" fill="white" opacity="0.5"/></svg>') repeat;
+            animation: twinkle 2s infinite;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+        @media (max-width: 768px) {
+            .season-card { min-width: 150px; }
+            .season-card img { height: 225px; }
+            .folder-iframe { height: 400px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>StarLinkFlix</h1>
+    </div>
+    <div class="container">
+        <div class="show-section">
+            <h2>Family Guy</h2>
+            <div class="seasons-grid" id="family-guy-seasons"></div>
+        </div>
+        <div class="show-section">
+            <h2>Squid Game</h2>
+            <div class="seasons-grid" id="squid-game-seasons"></div>
+        </div>
+        <div class="show-section">
+            <h2>Regular Show</h2>
+            <div class="seasons-grid" id="regular-show-seasons"></div>
+        </div>
+        <div class="show-section">
+            <h2>The Simpsons</h2>
+            <div class="seasons-grid" id="simpsons-seasons"></div>
+        </div>
+        <div class="show-section">
+            <h2>SpongeBob SquarePants</h2>
+            <div class="seasons-grid" id="spongebob-seasons"></div>
+        </div>
+        <div class="show-section">
+            <h2>Sonic X</h2>
+            <div class="seasons-grid" id="sonic-x-seasons"></div>
+        </div>
+        <div class="show-section">
+            <h2>South Park</h2>
+            <div class="seasons-grid" id="south-park-seasons"></div>
+        </div>
+        <div class="show-section">
+            <h2>Movies</h2>
+            <div class="seasons-grid" id="movies"></div>
+        </div>
+        <div id="episodes-section" class="episodes-section">
+            <h2 id="season-title"></h2>
+            <div id="loading-message" class="loading-message">Loading content...</div>
+            <div id="error-message" class="error-message">Failed to load content. The Google Drive link may be invalid or not publicly shared. Please check permissions.</div>
+            <iframe id="folder-iframe" class="folder-iframe" src="" sandbox="allow-same-origin allow-scripts"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // Data with folder IDs for shows and file IDs for movies
+        const data = [
+            // Family Guy seasons (folder IDs)
+            { show: "Family Guy", season: "Family Guy Season 1", id: "1k0ndzzsCScUVY5l011g_5Q2MsuZK1oDx", poster: "https://m.media-amazon.com/images/I/81aNQ9+AEHL._UF894,1000_QL80_.jpg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 2", id: "1ZWfI5DdiSOTmsLi5qO0d927KAc92wW36", poster: "https://i.ebayimg.com/00/s/MTU3N1gxMTQz/z/akQAAOSw2Zxj3t5J/$_1.JPG?set_id=880000500F", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 3", id: "1-I24UNS48e5gFw-W3cg5cKIhOzHct2CN", poster: "https://upload.wikimedia.org/wikipedia/en/0/05/Family_Guy_season_3.png", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 4", id: "1-ZsmZ1Ha38Zxf_AVUhlEpQfR90oto4Fr", poster: "https://upload.wikimedia.org/wikipedia/en/3/3c/Fguy_vol3.png", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 5", id: "1-Al60xKTILe6vjx7mAOjwpYkyJCmTdjh", poster: "https://upload.wikimedia.org/wikipedia/en/c/c4/Family_Guy_Vol5.jpg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 6", id: "1-umrP2J7fGO_dZwAQP82XJpK4kg0-peU", poster: "https://upload.wikimedia.org/wikipedia/en/3/34/Family_Guy_Vol6.jpg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 7", id: "1x4sAk5p6WX3uW5OyBWAqnOaxGbhdGTi9", poster: "https://upload.wikimedia.org/wikipedia/en/6/66/Family_Guy_Vol7.jpg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 8", id: "1XL0rgzqYQU6mPt5AgCvWZIHOTUCDyE0A", poster: "https://upload.wikimedia.org/wikipedia/en/7/70/Family_Guy_Volume_8_DVD_Cover.png", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 9", id: "1b5XoMsSEIHYAKTOiRjhbdbnn21KEoLzy", poster: "https://upload.wikimedia.org/wikipedia/en/3/3e/Family_Guy_Volume_9.png", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 10", id: "1x74Ajcrszl8WZaG68gu58vMYYeFoeDk8", poster: "https://upload.wikimedia.org/wikipedia/en/b/b1/Family_Guy_Volume_11.jpg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 11", id: "1w5yjNpu2iUa8_dd36qXbg8CgeU39Psl-", poster: "https://upload.wikimedia.org/wikipedia/en/f/fc/Family_Guy_Volume_12_DVD.jpg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 12", id: "1xZMD9sOOKx9pVdGG1blfgTkUIRiGLY-T", poster: "https://upload.wikimedia.org/wikipedia/en/6/67/Family_Guy_season_12.jpeg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 13", id: "1xZMD9sOOKx9pVdGG1blfgTkUIRiGLY-T", poster: "https://upload.wikimedia.org/wikipedia/en/2/2f/Family_Guy_season_13.jpeg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 14", id: "1WXK6bUGqnypPwhAdL9rCG-guHS0ZW0y2", poster: "https://upload.wikimedia.org/wikipedia/en/1/1d/Family_Guy_season_14.jpg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 15", id: "1umpI0kUxE9-Eg0I4C6q_WSbaqG5iJ6BI", poster: "https://upload.wikimedia.org/wikipedia/en/0/01/Family_Guy_-_Season_15.png", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 16", id: "1qBohKMmo3Wn2mH1y7IBc7iHvTtf7r8Xx", poster: "https://upload.wikimedia.org/wikipedia/en/7/72/Family_Guy_season_16_cover.jpg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 17", id: "1sXNNtsu6nUljoJLt3KunIWayXfcMsnPL", poster: "https://upload.wikimedia.org/wikipedia/en/6/6e/Familyguyseason17walmart.dvdcover.jpg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 18", id: "1pQ0IfrXbCDa4sfXGUAWH9BiapHlhWnMh", poster: "https://upload.wikimedia.org/wikipedia/en/2/24/Familyguys18cover.jpg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 19", id: "1PJXPLQmMxozqQ4uGLmPYOcCymu6Bscef", poster: "https://upload.wikimedia.org/wikipedia/en/b/b7/Familyguyseason19new.jpg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 20", id: "1INRf1o3HkHM0c4BgFRmUY2ohOX81l_Uw", poster: "https://image.tmdb.org/t/p/original/hLzpyBVqwX1niev4arM8bWg2Rx9.jpg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 21", id: "1qV927lPEj0EV3ATyCQUrFkRpgWDeCnHd", poster: "https://upload.wikimedia.org/wikipedia/en/b/b4/Familyguyseason21itunesicon.jpg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 22", id: "19nAiUZOu1E8ZI7ZKKiUdiSCf5QIXCvfw", poster: "https://upload.wikimedia.org/wikipedia/en/8/81/Familyguyseason22itunes.jpg", type: "folder" },
+            { show: "Family Guy", season: "Family Guy Season 23", id: "1nds_3eUcY_xWQGIhypYZSKlHbv72PWCt", poster: "https://upload.wikimedia.org/wikipedia/en/5/50/Familyguyseason23digitalimage.jpg", type: "folder" },
+            // Squid Game seasons (folder IDs)
+            { show: "Squid Game", season: "Squid Game Season 1", id: "1LFBMps0Ufzsd48KU_1yKhYbZCSN4MaX3", poster: "https://m.media-amazon.com/images/M/MV5BYWE3MDVkN2EtNjQ5MS00ZTI0LWE1NDItMjc4Y2Y4ZTI3NTdmXkEyXkFqcGc@._V1_.jpg", type: "folder" },
+            { show: "Squid Game", season: "Squid Game Season 2", id: "1GikBzgg6ts1tWrP8y27qzEcwwZB1cp3h", poster: "https://m.media-amazon.com/images/M/MV5BYmU0MmFiNWUtNDU3MC00YzM0LTg5YzMtM2ZkM2FiOTVhMzg5XkEyXkFqcGc@._V1_.jpg", type: "folder" },
+            // Regular Show seasons (folder IDs)
+            { show: "Regular Show", season: "Regular Show Season 1", id: "1ps3c-vG9rAN32N5luBM5dZpX-AhRixyC", poster: "https://upload.wikimedia.org/wikipedia/en/4/47/Regular_Show_Season_1_DVD_cover.png", type: "folder" },
+            { show: "Regular Show", season: "Regular Show Season 2", id: "1972ZYNu_DfyQT9P5H9Etjjyuk8PEJWVp", poster: "https://upload.wikimedia.org/wikipedia/en/4/47/Regular_Show_Season_1_DVD_cover.png", type: "folder" },
+            { show: "Regular Show", season: "Regular Show Season 3", id: "1ZfDN1z-_7k2Hbb8EdFuiO1I5-z2JoX0P", poster: "https://upload.wikimedia.org/wikipedia/en/0/0f/RegularShowS3.jpg", type: "folder" },
+            { show: "Regular Show", season: "Regular Show Season 4", id: "1DoeNq5XBkQMViUjamv8cqyIW1lg1DgFE", poster: "https://upload.wikimedia.org/wikipedia/en/0/0f/RegularShowS3.jpg", type: "folder" },
+            { show: "Regular Show", season: "Regular Show Season 5", id: "1R7pwMkPrH84GH9fVNGYsF5sgrvgX1uXe", poster: "https://m.media-amazon.com/images/M/MV5BMTk0NTQyNTQyOV5BMl5BanBnXkFtZTgwNzA2MDEwMzE@._V1_.jpg", type: "folder" },
+            { show: "Regular Show", season: "Regular Show Season 6", id: "1wtB7E3jYvh8aESqVS7gLG-VaGMdYMV4E", poster: "https://m.media-amazon.com/images/M/MV5BMTk0NTQyNTQyOV5BMl5BanBnXkFtZTgwNzA2MDEwMzE@._V1_.jpg", type: "folder" },
+            { show: "Regular Show", season: "Regular Show Season 7", id: "15CPP26ntxr7YGx4O7XPJL2eeSaCRyMm8", poster: "https://m.media-amazon.com/images/M/MV5BMjM0NzQ5MTg0NF5BMl5BanBnXkFtZTgwNDg3NjY5NzE@._V1_.jpg", type: "folder" },
+            { show: "Regular Show", season: "Regular Show Season 8", id: "1B4MsafzexkHe6EJoe6VR1iSqzZg_t54K", poster: "https://m.media-amazon.com/images/M/MV5BMjM0NzQ5MTg0NF5BMl5BanBnXkFtZTgwNDg3NjY5NzE@._V1_.jpg", type: "folder" },
+            // The Simpsons seasons (folder IDs)
+            { show: "The Simpsons", season: "The Simpsons Season 1", id: "1WUjMcUn_BIPqwp9e19y25iYLPBfCQkv3", poster: "https://upload.wikimedia.org/wikipedia/en/1/11/The_Simpsons_S1_DVD.jpg", type: "folder" },
+            { show: "The Simpsons", season: "The Simpsons Season 2", id: "1AllsigTmrBnhc6HbVJeNwdPMOE2U7pco", poster: "https://upload.wikimedia.org/wikipedia/en/8/8a/Simpsons_s2_dvd.jpg", type: "folder" },
+            { show: "The Simpsons", season: "The Simpsons Season 3", id: "1823YX9648NvAAaAJ1Xwlyc_1Sg5Z9buK", poster: "https://upload.wikimedia.org/wikipedia/en/7/74/Simpsons_s3_dvd.jpg", type: "folder" },
+            { show: "The Simpsons", season: "The Simpsons Season 4", id: "1v6u28QTHHi_k25pWcBcqzme5vt1eCYAo", poster: "https://upload.wikimedia.org/wikipedia/en/5/54/Simpsons_s4_dvd.jpg", type: "folder" },
+            { show: "The Simpsons", season: "The Simpsons Season 5", id: "11qGfnIWdKwoWb27LzM27oDw7IG4g4dli", poster: "https://upload.wikimedia.org/wikipedia/en/0/05/Simpsons_5_dvd.png", type: "folder" },
+            { show: "The Simpsons", season: "The Simpsons Season 6", id: "1BTszt9RRbUn1R2gqX5iwRtRzdIWVAuxu", poster: "https://upload.wikimedia.org/wikipedia/en/c/c2/Simpsons_s6_dvd.jpg", type: "folder" },
+            { show: "The Simpsons", season: "The Simpsons Season 7", id: "1JRQcYLObM8T6LXSRPPadiNP0r2yb3Tdg", poster: "https://upload.wikimedia.org/wikipedia/en/7/72/Simpsons_s7_dvd.png", type: "folder" },
+            { show: "The Simpsons", season: "The Simpsons Season 8", id: "1X8JVQHKdKgNVy-I_f2fJf0QIjffCfXkv", poster: "https://upload.wikimedia.org/wikipedia/en/9/92/The_Simpsons_-_Season_8_DVD.png", type: "folder" },
+            { show: "The Simpsons", season: "The Simpsons Season 9", id: "1JlEDs_D6CKtPcb6bpIxyO516Z1GBn6Yw", poster: "https://upload.wikimedia.org/wikipedia/en/7/77/The_Simpsons_-_Season_9_DVD.png", type: "folder" },
+            { show: "The Simpsons", season: "The Simpsons Season 10", id: "1puugQnd2Y6bJimGvtci2hJOo1QcIFrcu", poster: "https://upload.wikimedia.org/wikipedia/en/5/5e/The_Simpsons_-_Season_10_DVD.png", type: "folder" },
+            { show: "The Simpsons", season: "The Simpsons Season 11", id: "1d28kbXB6HtwVRC0pEocu1iGCllsHTJkv", poster: "https://upload.wikimedia.org/wikipedia/en/1/12/The_Simpsons_-_Season_11_DVD.png", type: "folder" },
+            // Movies (file IDs)
+            { show: "Movies", season: "The Incredibles", id: "1tVsDrCHeADhoZRkQZnXIIj3R5kpB2une", poster: "https://upload.wikimedia.org/wikipedia/en/2/27/The_Incredibles_%282004_animated_feature_film%29.jpg", type: "file" },
+            { show: "Movies", season: "Kung Fu Panda", id: "17LAn1tOIbbj0AZl2N2uwGNiMMvydnP9u", poster: "https://upload.wikimedia.org/wikipedia/en/7/76/Kungfupanda.jpg", type: "file" },
+            { show: "Movies", season: "Good Burger 2", id: "1wxA1ULvNUde3-w14GwNpNdb45ukoMPYc", poster: "https://m.media-amazon.com/images/M/MV5BOWEyYzBmYzUtYjQ1Ni00ZjkwLTg1ZDEtM2ZhNzkyM2E3OWE0XkEyXkFqcGc@._V1_.jpg", type: "file" },
+            { show: "Movies", season: "The SpongeBob SquarePants Movie", id: "10psuQzZhigfhoKOdeVI6Eg3aKbE7jg7R", poster: "https://m.media-amazon.com/images/M/MV5BMzM5Njg4MjEtN2VhZi00YzQ2LThhM2UtZTFiM2Y2Y2M0NzM1XkEyXkFqcGdeQXVyMTUyOTc1NDYz._V1_.jpg", type: "file" },
+            // SpongeBob SquarePants (folder IDs)
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Shorts", id: "1WwMjqZPPF-Y3r2s2h5QQowBZzeRW4JFi", poster: "https://static.wikia.nocookie.net/spongebob/images/d/df/SpongeShorts.jpg/revision/latest/scale-to-width-down/1200?cb=20211024045309", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Rare Finds", id: "1HNtFzpGvxers6ed5MfUfrYw8T9EBAFa2", poster: "https://i.ebayimg.com/00/s/MTYwMFgxMjAw/z/HZgAAOSwZIphuQEM/$_57.JPG?set_id=8800005007", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 1", id: "1POW9PmENDMDvuymjEPshRHavjreeeCel", poster: "https://i.ebayimg.com/images/g/p8sAAeSw2txoy6i7/s-l1200.jpg", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 2", id: "1NZ6F15IK3HjlzizjFw8XoVbodSUtNPBd", poster: "https://m.media-amazon.com/images/I/811mBoeq5fL._UF1000,1000_QL80_.jpg", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 3", id: "1ZBWd_zQDE8KonbXt6qwoHq7Fv936L-G5", poster: "https://m.media-amazon.com/images/I/91Pxi0gtUcL._UF1000,1000_QL80_.jpg", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 4", id: "1PLzNDoMd7XP7cvIGhX1pI6oYyjyoOzG1", poster: "http://prodimage.images-bn.com/pimages/0097361468440_p0_v3_s1200x630.jpg", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 5", id: "1Rx3a1v71MMNGdEtBbmsdq7SrCHYvgmeF", poster: "https://m.media-amazon.com/images/I/71-MMEGtPJL._UF894,1000_QL80_.jpg", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 6", id: "1d5R01Ys4ZsNHgkZEH1qs_YEk1bv2OZnY", poster: "https://m.media-amazon.com/images/I/81HciBfuwxL._UF894,1000_QL80_.jpg", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 7", id: "18Sc-sn9I1Bp522QlesWDkZQ15OOQtlPI", poster: "https://m.media-amazon.com/images/I/91AZ90d5vrL._UF894,1000_QL80_.jpg", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 8", id: "1ohI-ff0xBlZXQG8bSGRJbTeXBEjx9JL1", poster: "https://m.media-amazon.com/images/I/71bY084NeLL._UF894,1000_QL80_.jpg", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 9", id: "1JJCy-ScZsvl-vFQDiAu5wWbbgrZZI7MX", poster: "https://m.media-amazon.com/images/I/81OVa8GtL8L._UF1000,1000_QL80_.jpg", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 10", id: "1uWimadY7YFnL_blVJH9x40PA9nphV6P0", poster: "https://m.media-amazon.com/images/I/81nyRZ5+hCL._UF894,1000_QL80_.jpg", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 11", id: "1PW6O_DGtinVKUrrlyidjRRqe42jqW1bW", poster: "https://m.media-amazon.com/images/I/81OLLnQBMOL._UF894,1000_QL80_.jpg", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 12", id: "1vllbwmiCPQT_mnk0bytFhqg1dHS4b6f5", poster: "https://m.media-amazon.com/images/I/81iEGogAy-L._UF894,1000_QL80_.jpg", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 13", id: "1a1JjefeciLXFUgQ28FnrR0BBmWBDyyH3", poster: "https://m.media-amazon.com/images/I/812SuxS1sfL._UF894,1000_QL80_.jpg", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 14", id: "1eZG4As8F5x3kexoTMM65z02mTvXmCfEe", poster: "https://m.media-amazon.com/images/I/61a5cd+I9VL._UF894,1000_QL80_.jpg", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 15", id: "11bE_om8hNi7OlddGawjkMifmzfDjRyPC", poster: "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/66ecb441-6344-4542-9056-9557cc3c657c/dif1i0l-de9d533e-ac9a-4ac2-8ffe-4f5123a2478e.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi82NmVjYjQ0MS02MzQ0LTQ1NDItOTA1Ni05NTU3Y2MzYzY1N2MvZGlmMWkwbC1kZTlkNTMzZS1hYzlhLTRhYzItOGZmZS00ZjUxMjNhMjQ3OGUuanBnIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.VIAP60LiHKn6YrkfsjbZ254JLHeuP5Vm1Oz5QuCk4b8", type: "folder" },
+            { show: "SpongeBob SquarePants", season: "SpongeBob SquarePants Season 16", id: "1i9A6ZVECwEDPQRcgP6s6cqbsvO6_ytVX", poster: "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/d8bf6fe2-52a9-45ff-ae96-8d51113d347c/dj91wr4-2ad7d9cc-00b5-445b-af8a-6b3db6dc470c.png/v1/fill/w_734,h_1088,q_70,strp/my_fanmade_spongebob_season_16_announcement_poster_by_colehammond_dj91wr4-pre.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTYwMCIsInBhdGgiOiIvZi9kOGJmNmZlMi01MmE5LTQ1ZmYtYWU5Ni04ZDUxMTEzZDM0N2MvZGo5MXdyNC0yYWQ3ZDljYy0wMGI1LTQ0NWItYWY4YS02YjNkYjZkYzQ3MGMucG5nIiwid2lkdGgiOiI8PTEwODAifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.xICPWYCUAxlfCGfUp13RUvFLN65777Mm5IN-NDF1pR0", type: "folder" },
+            // Sonic X (folder IDs)
+            { show: "Sonic X", season: "Sonic X Season 1", id: "1tr2WfyGG_05yVQtvHj_sK_5qT3L5vXAs", poster: "https://m.media-amazon.com/images/M/MV5BNzdjYTU1MWItNjY3Mi00NTNjLWIzNzctZmU5ZWQ0NGVlMTAzXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg", type: "folder" },
+            { show: "Sonic X", season: "Sonic X Season 2", id: "1iUdHtYp3ZIIGyKICqnfgZzukmNTnC4hw", poster: "https://images.justwatch.com/poster/324710253/s718/season-2.jpg", type: "folder" },
+            { show: "Sonic X", season: "Sonic X Season 3", id: "15FuD1fbCILweHQmA3-EQnXALe0uYLooK", poster: "https://i.pinimg.com/736x/0e/d5/f2/0ed5f21d26d4cf096f46d295a24178ee.jpg", type: "folder" },
+            { show: "Sonic X", season: "Sonic X Special Features", id: "11H9HSXjLVmRSeRbo3gw9NUgzCnZ76opU", poster: "https://preview.redd.it/u8q1cqgfc5p21.jpg?width=640&crop=smart&auto=webp&s=8fa7f184846ae58e23743659b20f0ca56dd884aa", type: "folder" },
+            // South Park (folder IDs)
+            { show: "South Park", season: "South Park Season 0", id: "1cUiEckvNFBO5KWJwJnouWIljMER6ugTC", poster: "https://static.wikia.nocookie.net/southpark/images/0/0a/South_park_season_0_dvd_cover.jpg/revision/latest?cb=20101014040234", type: "folder" },
+            { show: "South Park", season: "South Park Season 1", id: "18B39vdIu4JqMk4SOne5dIkHVjoJjynxy", poster: "https://upload.wikimedia.org/wikipedia/en/8/81/SouthParkS1DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 2", id: "1FevnkwSmQoTP5Rq5cQ2IuxiCI8PIt9ym", poster: "https://upload.wikimedia.org/wikipedia/en/8/87/SouthParkS2DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 3", id: "141lvwEGhfGAjiopWMfh6SZx0MkiJbHqY", poster: "https://upload.wikimedia.org/wikipedia/en/1/1e/SouthParkS3DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 4", id: "1-mZNnY4-68JGoy2XGm8Dbj_zyP80gfnU", poster: "https://upload.wikimedia.org/wikipedia/en/5/5d/SouthParkS4DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 5", id: "1KrAM1B5BN87dZ3-BtxJg8XXmtHmItHrA", poster: "https://upload.wikimedia.org/wikipedia/en/7/7f/SouthParkS5DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 6", id: "1UzO8cVsp6c4va3xw-1QJZ5rGMacGDJc1", poster: "https://upload.wikimedia.org/wikipedia/en/2/2c/SouthParkS6DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 7", id: "1Rqz6rV37w-6LAkNoSjTjQycm6--CYe-l", poster: "https://upload.wikimedia.org/wikipedia/en/2/2f/SouthParkS7DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 8", id: "1ckdPO8_MngzKqoaSM-7HaSZdMO2dMCKo", poster: "https://upload.wikimedia.org/wikipedia/en/5/5a/SouthParkS8DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 9", id: "1TduNtTCr5eKDs4gupyvOXaWBprN9gt1p", poster: "https://upload.wikimedia.org/wikipedia/en/4/4a/SouthParkS9DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 10", id: "1Uz7Ibmxiid4Qx93fUYYQDm0wmZicWbrh", poster: "https://upload.wikimedia.org/wikipedia/en/6/6f/SouthParkS10DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 11", id: "1lv4jCAs9YIcQqirOwo070bHxINKILPQs", poster: "https://upload.wikimedia.org/wikipedia/en/3/35/SouthParkS11DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 12", id: "1LWe-T7weexxvfeAwxBL822_rH5YALLRr", poster: "https://upload.wikimedia.org/wikipedia/en/4/42/SouthParkS12DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 13", id: "1V8Up7-TWGbTXpMzhUdDk_aQd41twlTAw", poster: "https://upload.wikimedia.org/wikipedia/en/8/81/SouthParkS13DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 14", id: "1eejhZfaxU7okkFl7eR5d6SKJ0Ot5e3hC", poster: "https://upload.wikimedia.org/wikipedia/en/5/5c/SouthParkS14DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 15", id: "1lJiVP7qS7eoWCt61pYLhypdn2q0Lfhu7", poster: "https://upload.wikimedia.org/wikipedia/en/0/0a/SouthParkS15DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 16", id: "1oSpb_M8KTp3ri9-Jsiuei47w4kVhfjGj", poster: "https://upload.wikimedia.org/wikipedia/en/1/1a/SouthParkS16DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 17", id: "1QMeRSqcZOnuunG_1MbNA3o85vD_HKie0", poster: "https://upload.wikimedia.org/wikipedia/en/5/58/SouthParkS17DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 17 and 18", id: "1fX59O9ZGhg_pZMwwn2hEYiRYSYzHOorN", poster: "https://upload.wikimedia.org/wikipedia/en/7/74/SouthParkS18DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 19", id: "1X6_9AZnuchDnQh6xEshWx_7mY_J_YzmI", poster: "https://upload.wikimedia.org/wikipedia/en/a/a2/SouthParkS19DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 20", id: "1Gy9YQHd--dOCxPPbdvr3JF7DNZCBWyyd", poster: "https://upload.wikimedia.org/wikipedia/en/2/2c/SouthParkS20DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 21", id: "1PNdqqXLSKlm1NDUhe5y9PXGaIafOaD4o", poster: "https://upload.wikimedia.org/wikipedia/en/0/0d/SouthParkS21DVD.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 22", id: "114GjhIiNX4E_FDTnS-hl9eSbHABM3gAm", poster: "https://m.media-amazon.com/images/I/81i7k4+cXWL._AC_UL320_.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 23", id: "1NtWJLk3kyzAI7HpVieh9ARhf3gycm2BV", poster: "https://m.media-amazon.com/images/I/81w1m1yI6uL._AC_UL320_.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 24", id: "1xsm4O4k1IPh2j5RC0mZ88uC97IhGC2yt", poster: "https://m.media-amazon.com/images/I/81C9w2z3M6L._AC_UL320_.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 25", id: "1R8_5uDmuNFCXtoJ14p2YXEcvAmFn74QL", poster: "https://m.media-amazon.com/images/I/81NJ1O+5P2L._AC_UL320_.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 26", id: "1DieIk5axopu2BfHbg_GMIHZlvVIa-X7c", poster: "https://m.media-amazon.com/images/I/81+8sK3K2gL._AC_UL320_.jpg", type: "folder" },
+            { show: "South Park", season: "South Park Season 27", id: "1qujbNl6HiE0SKMMsoJQGErqzGyeNelo4", poster: "https://static.wikia.nocookie.net/southparkfanon/images/6/6d/South_Park_Season_27_Fanmade_Poster.png/revision/latest?cb=20240217070609", type: "folder" }
+        ];
+
+        const familyGuyGrid = document.getElementById('family-guy-seasons');
+        const squidGameGrid = document.getElementById('squid-game-seasons');
+        const regularShowGrid = document.getElementById('regular-show-seasons');
+        const simpsonsGrid = document.getElementById('simpsons-seasons');
+        const spongebobGrid = document.getElementById('spongebob-seasons');
+        const sonicXGrid = document.getElementById('sonic-x-seasons');
+        const southParkGrid = document.getElementById('south-park-seasons');
+        const moviesGrid = document.getElementById('movies');
+        const episodesSection = document.getElementById('episodes-section');
+        const seasonTitle = document.getElementById('season-title');
+        const folderIframe = document.getElementById('folder-iframe');
+        const errorMessage = document.getElementById('error-message');
+        const loadingMessage = document.getElementById('loading-message');
+
+        function loadSeasons() {
+            console.log('Loading seasons and movies...');
+            // Clear grids to prevent duplicates
+            familyGuyGrid.innerHTML = '';
+            squidGameGrid.innerHTML = '';
+            regularShowGrid.innerHTML = '';
+            simpsonsGrid.innerHTML = '';
+            spongebobGrid.innerHTML = '';
+            sonicXGrid.innerHTML = '';
+            southParkGrid.innerHTML = '';
+            moviesGrid.innerHTML = '';
+
+            // Load Family Guy seasons
+            const familyGuySeasons = data.filter(item => item.show === "Family Guy");
+            console.log(`Found ${familyGuySeasons.length} Family Guy seasons`);
+            familyGuySeasons.forEach((seasonData) => {
+                const card = document.createElement('div');
+                card.className = 'season-card';
+                card.innerHTML = `
+                    <img src="${seasonData.poster}" alt="${seasonData.season}" id="${seasonData.season.toLowerCase().replace(/\s+/g, '-')}" onerror="this.src='https://via.placeholder.com/200x300?text=${encodeURIComponent(seasonData.season)}';">
+                    <h3>${seasonData.season.replace("Family Guy ", "")}</h3>
+                `;
+                card.addEventListener('click', () => {
+                    console.log(`Clicked ${seasonData.season} (ID: ${seasonData.id})`);
+                    loadSeasonFolder(seasonData);
+                });
+                familyGuyGrid.appendChild(card);
+            });
+
+            // Load Squid Game seasons
+            const squidGameSeasons = data.filter(item => item.show === "Squid Game");
+            console.log(`Found ${squidGameSeasons.length} Squid Game seasons`);
+            squidGameSeasons.forEach((seasonData) => {
+                const card = document.createElement('div');
+                card.className = 'season-card';
+                card.innerHTML = `
+                    <img src="${seasonData.poster}" alt="${seasonData.season}" id="${seasonData.season.toLowerCase().replace(/\s+/g, '-')}" onerror="this.src='https://via.placeholder.com/200x300?text=${encodeURIComponent(seasonData.season)}';">
+                    <h3>${seasonData.season.replace("Squid Game ", "")}</h3>
+                `;
+                card.addEventListener('click', () => {
+                    console.log(`Clicked ${seasonData.season} (ID: ${seasonData.id})`);
+                    loadSeasonFolder(seasonData);
+                });
+                squidGameGrid.appendChild(card);
+            });
+
+            // Load Regular Show seasons
+            const regularShowSeasons = data.filter(item => item.show === "Regular Show");
+            console.log(`Found ${regularShowSeasons.length} Regular Show seasons`);
+            regularShowSeasons.forEach((seasonData) => {
+                const card = document.createElement('div');
+                card.className = 'season-card';
+                card.innerHTML = `
+                    <img src="${seasonData.poster}" alt="${seasonData.season}" id="${seasonData.season.toLowerCase().replace(/\s+/g, '-')}" onerror="this.src='https://via.placeholder.com/200x300?text=${encodeURIComponent(seasonData.season)}';">
+                    <h3>${seasonData.season.replace("Regular Show ", "")}</h3>
+                `;
+                card.addEventListener('click', () => {
+                    console.log(`Clicked ${seasonData.season} (ID: ${seasonData.id})`);
+                    loadSeasonFolder(seasonData);
+                });
+                regularShowGrid.appendChild(card);
+            });
+
+            // Load The Simpsons seasons
+            const simpsonsSeasons = data.filter(item => item.show === "The Simpsons");
+            console.log(`Found ${simpsonsSeasons.length} Simpsons seasons`);
+            simpsonsSeasons.forEach((seasonData) => {
+                const card = document.createElement('div');
+                card.className = 'season-card';
+                card.innerHTML = `
+                    <img src="${seasonData.poster}" alt="${seasonData.season}" id="${seasonData.season.toLowerCase().replace(/\s+/g, '-')}" onerror="this.src='https://via.placeholder.com/200x300?text=${encodeURIComponent(seasonData.season)}';">
+                    <h3>${seasonData.season.replace("The Simpsons ", "")}</h3>
+                `;
+                card.addEventListener('click', () => {
+                    console.log(`Clicked ${seasonData.season} (ID: ${seasonData.id})`);
+                    loadSeasonFolder(seasonData);
+                });
+                simpsonsGrid.appendChild(card);
+            });
+
+            // Load SpongeBob SquarePants seasons/specials
+            let spongebobSeasons = data.filter(item => item.show === "SpongeBob SquarePants");
+            console.log(`Found ${spongebobSeasons.length} SpongeBob seasons/specials`);
+            // Sort: Shorts first, Rare Finds second, then Seasons 1-16
+            spongebobSeasons.sort((a, b) => {
+                const getSortKey = (season) => {
+                    if (season.includes("Shorts")) return -2;
+                    if (season.includes("Rare Finds")) return -1;
+                    const num = parseInt(season.match(/Season (\d+)/)?.[1] || 100);
+                    return num;
+                };
+                return getSortKey(a.season) - getSortKey(b.season);
+            });
+            spongebobSeasons.forEach((seasonData) => {
+                const card = document.createElement('div');
+                card.className = 'season-card';
+                card.innerHTML = `
+                    <img src="${seasonData.poster}" alt="${seasonData.season}" id="${seasonData.season.toLowerCase().replace(/\s+/g, '-')}" onerror="this.src='https://via.placeholder.com/200x300?text=${encodeURIComponent(seasonData.season)}';">
+                    <h3>${seasonData.season.replace("SpongeBob SquarePants ", "")}</h3>
+                `;
+                card.addEventListener('click', () => {
+                    console.log(`Clicked ${seasonData.season} (ID: ${seasonData.id})`);
+                    loadSeasonFolder(seasonData);
+                });
+                spongebobGrid.appendChild(card);
+            });
+
+            // Load Sonic X seasons/specials
+            let sonicXSeasons = data.filter(item => item.show === "Sonic X");
+            console.log(`Found ${sonicXSeasons.length} Sonic X seasons/specials`);
+            // Sort: Seasons 1-3 first, Special Features last
+            sonicXSeasons.sort((a, b) => {
+                const getSortKey = (season) => {
+                    if (season.includes("Special Features")) return 100;
+                    const num = parseInt(season.match(/Season (\d+)/)?.[1] || 0);
+                    return num;
+                };
+                return getSortKey(a.season) - getSortKey(b.season);
+            });
+            sonicXSeasons.forEach((seasonData) => {
+                const card = document.createElement('div');
+                card.className = 'season-card';
+                card.innerHTML = `
+                    <img src="${seasonData.poster}" alt="${seasonData.season}" id="${seasonData.season.toLowerCase().replace(/\s+/g, '-')}" onerror="this.src='https://via.placeholder.com/200x300?text=${encodeURIComponent(seasonData.season)}';">
+                    <h3>${seasonData.season.replace("Sonic X ", "")}</h3>
+                `;
+                card.addEventListener('click', () => {
+                    console.log(`Clicked ${seasonData.season} (ID: ${seasonData.id})`);
+                    loadSeasonFolder(seasonData);
+                });
+                sonicXGrid.appendChild(card);
+            });
+
+            // Load South Park seasons/specials
+            let southParkSeasons = data.filter(item => item.show === "South Park");
+            console.log(`Found ${southParkSeasons.length} South Park seasons/specials`);
+            // Sort: Season 0 first, then Seasons 1-27
+            southParkSeasons.sort((a, b) => {
+                const getSortKey = (season) => {
+                    if (season.includes("Season 0")) return -1;
+                    const num = parseInt(season.match(/Season (\d+)/)?.[1] || 100);
+                    return num;
+                };
+                return getSortKey(a.season) - getSortKey(b.season);
+            });
+            southParkSeasons.forEach((seasonData) => {
+                const card = document.createElement('div');
+                card.className = 'season-card';
+                card.innerHTML = `
+                    <img src="${seasonData.poster}" alt="${seasonData.season}" id="${seasonData.season.toLowerCase().replace(/\s+/g, '-')}" onerror="this.src='https://via.placeholder.com/200x300?text=${encodeURIComponent(seasonData.season)}';">
+                    <h3>${seasonData.season.replace("South Park ", "")}</h3>
+                `;
+                card.addEventListener('click', () => {
+                    console.log(`Clicked ${seasonData.season} (ID: ${seasonData.id})`);
+                    loadSeasonFolder(seasonData);
+                });
+                southParkGrid.appendChild(card);
+            });
+
+            // Load Movies
+            const movies = data.filter(item => item.show === "Movies");
+            console.log(`Found ${movies.length} Movies`);
+            movies.forEach((seasonData) => {
+                const card = document.createElement('div');
+                card.className = 'season-card';
+                card.innerHTML = `
+                    <img src="${seasonData.poster}" alt="${seasonData.season}" id="${seasonData.season.toLowerCase().replace(/\s+/g, '-')}" onerror="this.src='https://via.placeholder.com/200x300?text=${encodeURIComponent(seasonData.season)}';">
+                    <h3>${seasonData.season}</h3>
+                `;
+                card.addEventListener('click', () => {
+                    console.log(`Clicked ${seasonData.season} (ID: ${seasonData.id})`);
+                    loadSeasonFolder(seasonData);
+                });
+                moviesGrid.appendChild(card);
+            });
+
+            // Check if any cards were loaded
+            if (familyGuySeasons.length === 0 && squidGameSeasons.length === 0 && regularShowSeasons.length === 0 && simpsonsSeasons.length === 0 && spongebobSeasons.length === 0 && sonicXSeasons.length === 0 && southParkSeasons.length === 0 && movies.length === 0) {
+                console.error('No seasons or movies loaded!');
+                alert('Error: No seasons or movies loaded. Please check the data array.');
+            } else {
+                console.log('All cards loaded successfully.');
+            }
+        }
+
+        function loadSeasonFolder(seasonData) {
+            console.log(`Attempting to load ${seasonData.season} with ID: ${seasonData.id}, Type: ${seasonData.type}`);
+            seasonTitle.textContent = seasonData.season;
+            errorMessage.style.display = 'none';
+            loadingMessage.style.display = 'block';
+            folderIframe.style.display = 'none';
+            folderIframe.src = ''; // Reset iframe
+            const url = seasonData.type === "folder" 
+                ? `https://drive.google.com/embeddedfolderview?id=${seasonData.id}#list`
+                : `https://drive.google.com/file/d/${seasonData.id}/preview`;
+            console.log(`Setting iframe src to: ${url}`);
+            folderIframe.src = url;
+            episodesSection.style.display = 'block';
+            episodesSection.scrollIntoView({ behavior: 'smooth' });
+
+            // Handle iframe load events
+            folderIframe.onload = () => {
+                console.log(`Iframe loaded successfully for ${seasonData.season}`);
+                loadingMessage.style.display = 'none';
+                folderIframe.style.display = 'block';
+            };
+            folderIframe.onerror = () => {
+                console.error(`Iframe failed to load for ${seasonData.season}`);
+                loadingMessage.style.display = 'none';
+                folderIframe.style.display = 'none';
+                errorMessage.style.display = 'block';
+            };
+        }
+
+        // Initialize
+        try {
+            loadSeasons();
+        } catch (error) {
+            console.error('Error loading seasons:', error);
+            alert('Error initializing the page. Check the console for details.');
+        }
+    </script>
+</body>
+</html>
